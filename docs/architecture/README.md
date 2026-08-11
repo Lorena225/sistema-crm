@@ -12,6 +12,11 @@ cria-se um novo ADR que a substitui e marca-se o anterior como substituido.
 | [0005](ADR-0005-acesso-reseller-admin-server-side.md) | Acesso reseller_admin server-side, deny-by-default | Aceito | 1 |
 | [0006](ADR-0006-migrations-versionadas-fonte-de-verdade.md) | Migrations versionadas como unica fonte de verdade do schema | Aceito | 1 |
 | [0007](ADR-0007-rpc-create-workspace.md) | Criacao de workspace via RPC SECURITY DEFINER | Aceito | 1 |
+| [0008](ADR-0008-auditoria-append-only.md) | Auditoria append-only imposta pelo banco | Aceito | 2 |
+| [0009](ADR-0009-auditoria-de-operacoes-administrativas.md) | Operacao administrativa so existe se ficar registrada | Aceito | 2 |
+| [0010](ADR-0010-primitivas-em-memoria-com-adaptador.md) | Fila e idempotencia em memoria, com adaptador para troca | Aceito | 2 |
+| [0011](ADR-0011-billing-parametrizavel.md) | Medicao de consumo sem catalogo comercial | Aceito | 2 |
+| [0012](ADR-0012-pwa-offline.md) | Fila offline local sem relaxar o isolamento | Aceito | 2 |
 
 Ver tambem: [provisionamento.md](provisionamento.md) — estado real da
 infraestrutura provisionada e passos manuais pendentes.

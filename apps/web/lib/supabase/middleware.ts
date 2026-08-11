@@ -32,7 +32,10 @@ export async function updateSession(request: NextRequest) {
 
   const isPublicPath =
     request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/auth');
+    request.nextUrl.pathname.startsWith('/auth') ||
+    // /offline e o casco servido pelo service worker quando nao ha rede:
+    // precisa abrir sem verificacao de sessao, que exige rede.
+    request.nextUrl.pathname.startsWith('/offline');
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();

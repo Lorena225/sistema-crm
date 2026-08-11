@@ -4,7 +4,7 @@ CRM multi-tenant, messenger-first, da VirtruvIA. Monorepo unico: este
 repositorio e a **fonte de verdade** de schema, decisoes e codigo entre as
 frentes de construcao. Historico de chat nao vale como referencia.
 
-**Etapa atual: 1 — Fundacao de repositorio, infraestrutura e multi-tenancy.**
+**Etapa atual: 2 — Seguranca, auditoria e billing esqueleto.**
 
 ## Estrutura
 
@@ -43,6 +43,15 @@ npm install
 cp .env.example apps/web/.env.local   # preencher com valores reais
 npm run dev:web                        # http://localhost:3000
 npm run dev:worker                     # http://localhost:8080/health
+npm run test:worker                    # primitivas: fila, idempotencia, cripto, log
+```
+
+Verificacao rapida do webhook simulado (falha duas vezes, aplica o efeito uma):
+
+```bash
+curl -X POST localhost:8080/webhooks/simulado -d '{"event_id":"evt_1","falhas_ate":2}'
+curl -X POST localhost:8080/webhooks/simulado -d '{"event_id":"evt_1","falhas_ate":2}'
+curl localhost:8080/simulacao/efeito   # total_aplicacoes deve ser 1
 ```
 
 ## Banco
@@ -52,8 +61,10 @@ supabase link --project-ref <ref>
 supabase db push                       # aplica migrations
 ```
 
-Teste de isolamento cross-tenant: `supabase/tests/rls_isolation_test.sql`
-(roda em transacao com ROLLBACK; nao deixa residuo).
+Testes reproduziveis (rodam em transacao com ROLLBACK; nao deixam residuo):
+
+- `supabase/tests/rls_isolation_test.sql` — isolamento cross-tenant
+- `supabase/tests/etapa2_audit_billing_test.sql` — trilha append-only e medicao
 
 ## Documentacao
 
@@ -63,6 +74,5 @@ Teste de isolamento cross-tenant: `supabase/tests/rls_isolation_test.sql`
 
 ## Proxima etapa
 
-Etapa 2 — Seguranca, auditoria e billing esqueleto (`audit_log_entries`,
-abstracoes de fila/webhook/idempotencia/criptografia, PWA offline, schema de
-billing). Nao antecipar nada disso aqui.
+Etapa 3 — Nucleo CRM: dados e campos configuraveis. Nao antecipar nada disso
+nas etapas anteriores.

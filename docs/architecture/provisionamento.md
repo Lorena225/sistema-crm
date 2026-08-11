@@ -22,10 +22,13 @@ Migrations aplicadas:
 
 1. `20260811190000_etapa1_foundation_multi_tenancy.sql`
 2. `20260811190100_etapa1_create_workspace_rpc.sql`
+3. `20260811200000_etapa2_audit_log.sql`
+4. `20260811200100_etapa2_usage_meter.sql`
+5. `20260811200200_etapa2_admin_audit_rpc.sql`
+6. `20260811200300_etapa2_hardening_search_path.sql`
 
-Estado verificado no banco: 3 tabelas, 6 politicas, 11 indices, RLS ativa nas
-tres tabelas, 0 linhas residuais (o teste de isolamento roda em transacao com
-`ROLLBACK`).
+Estado verificado no banco ao fim da Etapa 2: 5 tabelas, 8 politicas, RLS ativa
+em todas, 0 linhas residuais (os testes rodam em transacao com `ROLLBACK`).
 
 ### Projeto anterior a remover
 
@@ -67,7 +70,9 @@ Depende do push do repositorio.
 1. New Project > Deploy from GitHub repo > `Lorena225/sistema-crm`.
 2. **Root Directory: `services/worker`**.
 3. Start Command e healthcheck ja vem de `services/worker/railway.json`.
-4. Variavel: `NODE_ENV=production` (a `PORT` a Railway injeta sozinha).
+4. Variaveis: `NODE_ENV=production`, `LOG_LEVEL=info`, `ENCRYPTION_KEY`
+   (gerar com `openssl rand -base64 32`) e, quando houver fonte assinada,
+   o segredo correspondente. A `PORT` a Railway injeta sozinha.
 
 Render e alternativa compativel: Web Service, Node 20, mesmo start command e
 mesmo health check path.
@@ -97,6 +102,11 @@ Enquanto esses segredos nao existirem, o job `deploy` do workflow falha; o job
 |---|---|---|
 | `rls_enabled_no_policy` (INFO) | `public.reseller_admins` | Deny-by-default proposital. Ver ADR-0005. |
 | `authenticated_security_definer_function_executable` (WARN) | `public.create_workspace` | Unico caminho de criacao de tenant; valida `auth.uid()` antes de escrever. Ver ADR-0007. |
+
+Sao os dois unicos avisos abertos. Os dois `function_search_path_mutable` que
+apareceram durante a Etapa 2 (`app.prevent_audit_mutation` e `app.current_ip`)
+foram corrigidos na migration `20260811200300`, e nao ha aviso de RLS ausente
+em nenhuma tabela nova.
 
 Nenhum dos dois deve ser "corrigido" em etapa futura sem antes revisitar o ADR
 correspondente.
