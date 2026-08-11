@@ -4,7 +4,7 @@ CRM multi-tenant, messenger-first, da VirtruvIA. Monorepo unico: este
 repositorio e a **fonte de verdade** de schema, decisoes e codigo entre as
 frentes de construcao. Historico de chat nao vale como referencia.
 
-**Etapa atual: 3 — Nucleo CRM: dados e campos configuraveis.**
+**Etapa atual: 4 — Nucleo CRM: produtividade e comercial.**
 
 ## Estrutura
 
@@ -66,6 +66,7 @@ Testes reproduziveis (rodam em transacao com ROLLBACK; nao deixam residuo):
 - `supabase/tests/rls_isolation_test.sql` — isolamento cross-tenant
 - `supabase/tests/etapa2_audit_billing_test.sql` — trilha append-only e medicao
 - `supabase/tests/etapa3_crm_test.sql` — campos, validacao, relacoes e pipelines
+- `supabase/tests/etapa4_produtividade_comercial_test.sql` — tarefas, agendamento, campanhas e itens de negocio
 
 ## Documentacao
 
@@ -75,5 +76,5 @@ Testes reproduziveis (rodam em transacao com ROLLBACK; nao deixam residuo):
 
 ## Proxima etapa
 
-Etapa 4 — Nucleo CRM: produtividade e comercial. Nao antecipar nada disso nas
-etapas anteriores.
+Etapa 5 — Inbox omnichannel e cockpit. Nao antecipar nada disso nas etapas
+anteriores.

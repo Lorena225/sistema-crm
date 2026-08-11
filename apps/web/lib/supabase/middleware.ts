@@ -35,7 +35,10 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/auth') ||
     // /offline e o casco servido pelo service worker quando nao ha rede:
     // precisa abrir sem verificacao de sessao, que exige rede.
-    request.nextUrl.pathname.startsWith('/offline');
+    request.nextUrl.pathname.startsWith('/offline') ||
+    // Agendamento publico: quem reserva nao tem conta. As duas funcoes que a
+    // pagina usa tem escopo restrito; as tabelas seguem fechadas ao anonimo.
+    request.nextUrl.pathname.startsWith('/agendar');
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();

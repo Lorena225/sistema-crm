@@ -291,6 +291,9 @@ export default function RegistrosPage({ params }: { params: { slug: string; tipo
                     </td>
                   )}
                   <td className="acoes-linha">
+                    {kind === 'deal' && (
+                      <a className="link" href={`/w/${params.slug}/negocios/${reg.id}`}>abrir</a>
+                    )}
                     <button className="link" onClick={() => editar(reg)}>editar</button>
                     <button className="link perigo" onClick={() => remover(reg.id)}>remover</button>
                   </td>
