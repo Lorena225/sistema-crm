@@ -1,11 +1,11 @@
 # Schema vigente
 
-Atualizado na **Etapa 2**. Reflete `/supabase/migrations` — se divergir, a
+Atualizado na **Etapa 3**. Reflete `/supabase/migrations` — se divergir, a
 migration esta certa e este documento esta desatualizado.
 
 Escopo ate aqui: fundacao de multi-tenancy (Etapa 1), auditoria append-only e
-medicao de consumo (Etapa 2). Nao existem ainda tabelas de CRM, canais,
-automacao, IA ou BI.
+medicao de consumo (Etapa 2), nucleo CRM configuravel e pipelines (Etapa 3).
+Nao existem ainda tabelas de tarefas, produtos, canais, automacao, IA ou BI.
 
 ## Visao geral
 
@@ -148,6 +148,98 @@ RLS: `usage_meter_entries_select_member` (SELECT para membro ativo). Escrita
 sem politica — quem mede e o sistema, via `service_role`. Consumo nao e
 declarado pelo cliente.
 
+## Nucleo CRM (Etapa 3)
+
+### `public.field_definitions`
+
+Metadados dos campos customizados. E contra esta tabela que `custom_fields` e
+validado antes de persistir (ADR-0014).
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| `id` | `uuid` PK | |
+| `workspace_id` | `uuid` NOT NULL | FK -> `workspaces`, cascade |
+| `entity_kind` | `entity_kind` NOT NULL | `contact`, `company`, `deal`, `object_type` |
+| `object_type_id` | `uuid` | obrigatorio quando `entity_kind = object_type`, nulo nos demais |
+| `key` | `text` NOT NULL | minusculas, numeros e sublinhado |
+| `label` | `text` NOT NULL | 1 a 120 caracteres |
+| `field_type` | `field_type` NOT NULL | os onze tipos do escopo |
+| `options` | `jsonb` NOT NULL | obrigatorio em `select` e `multiselect` |
+| `ai_generation_config` | `jsonb` NOT NULL | preservado; nada o consome nesta etapa |
+| `is_required` | `boolean` NOT NULL | |
+| `is_filterable` | `boolean` NOT NULL | |
+| `position` | `integer` NOT NULL | ordem no formulario |
+| `editable_roles` | `text[]` NOT NULL | declarativo; o motor de permissoes e da Etapa 9 |
+| `sensitivity_level` | `field_sensitivity` NOT NULL | `none`, `pii`, `financial` |
+| `created_at` | `timestamptz` NOT NULL | |
+
+Indices: unico em `(workspace_id, entity_kind, coalesce(object_type_id, uuid zero), lower(key))`
+— o `coalesce` permite que dois objetos diferentes tenham ambos um campo `codigo`;
+`workspace_id`; `(workspace_id, entity_kind, object_type_id, position)`.
+
+### `public.field_schema_versions`
+
+`id`, `field_definition_id`, `version`, `change_type` (`created`/`updated`/`deleted`),
+`changed_by`, `created_at`. Unico em `(field_definition_id, version)`.
+
+Escrita apenas pelo gatilho `field_definitions_versionamento`; `authenticated`
+so tem `SELECT`. `field_definition_id` **sem FK**: a versao `deleted` nao pode
+se apagar junto com o que ela registra.
+
+### `public.contacts`, `public.companies`, `public.deals`
+
+| Tabela | Colunas |
+|---|---|
+| `contacts` | `id`, `workspace_id`, `name`, `email`, `phone`, `owner_id`, `source`, `custom_fields`, `created_at`, `updated_at` |
+| `companies` | `id`, `workspace_id`, `name`, `domain`, `owner_id`, `custom_fields`, `created_at`, `updated_at` |
+| `deals` | `id`, `workspace_id`, `title`, `value`, `currency` (default `BRL`), `contact_id`, `company_id`, `owner_id`, `custom_fields`, `status` (`open`/`won`/`lost`), `created_at`, `updated_at` |
+
+As tres, mais `object_records`, tem `custom_fields jsonb NOT NULL DEFAULT '{}'`
+com **indice GIN** (`jsonb_path_ops`) e dois gatilhos: validacao de
+`custom_fields` (BEFORE) e auditoria (AFTER).
+
+`deals.value` e preenchido diretamente. Itens de negocio sao da Etapa 4 e ainda
+nao alteram este valor.
+
+### `public.contact_company_links`
+
+`contact_id`, `company_id`, `role`. PK composta `(contact_id, company_id)`.
+Uma pessoa em varias empresas e uma empresa com varios contatos, sem duplicar
+cadastro. Sem `workspace_id` — ver ADR-0013. O `with check` da politica exige
+que contato e empresa estejam no **mesmo** workspace.
+
+### `public.object_types` / `object_records` / `object_relations`
+
+| Tabela | Colunas |
+|---|---|
+| `object_types` | `id`, `workspace_id`, `name` (unico por workspace), `icon`, `description`, `created_by`, `created_at` |
+| `object_records` | `id`, `workspace_id`, `object_type_id`, `title`, `owner_id`, `custom_fields`, `created_at`, `updated_at` |
+| `object_relations` | `id`, `workspace_id`, `from_kind`, `from_id`, `to_kind`, `to_id`, `relation_label` |
+
+`object_relations` e polimorfica nos dois lados, entao nao tem FK; o gatilho
+`object_relations_valida_alvos` confere que origem e destino existem no mesmo
+workspace. Unico em `(workspace_id, from_kind, from_id, to_kind, to_id, coalesce(relation_label,''))`,
+e proibida a autorreferencia.
+
+## Pipelines (Etapa 3)
+
+| Tabela | Colunas |
+|---|---|
+| `pipelines` | `id`, `workspace_id`, `name`, `entity_kind`, `object_type_id`, `is_default`, `created_by`, `created_at` |
+| `pipeline_stages` | `id`, `pipeline_id`, `name`, `position`, `color`, `is_won`, `is_lost`, `probability`, `wip_limit`, `created_at` |
+| `pipeline_items` | `id`, `pipeline_id`, `stage_id`, `entity_kind`, `entity_id`, `position_in_stage`, `entered_stage_at`, `assigned_to`, `created_at`, `updated_at` |
+| `pipeline_stage_history` | `id`, `pipeline_item_id`, `from_stage_id`, `to_stage_id`, `moved_by`, `moved_at`, `duration_seconds` |
+
+`pipeline_items` tem `unique (pipeline_id, entity_id)`: uma entrada por
+pipeline, e por isso a mesma entidade pode correr em varios pipelines ao mesmo
+tempo. Um estagio nao pode ser `is_won` e `is_lost` simultaneamente. Apenas um
+pipeline `is_default` por escopo (indice parcial).
+
+Tres gatilhos em `pipeline_items`: valida (entidade existe, tipo bate, estagio
+pertence ao pipeline), marca `entered_stage_at` na mudanca, e registra o
+historico. `pipeline_stage_history` e somente leitura para `authenticated` —
+ver ADR-0015.
+
 ## Enums
 
 | Tipo | Valores |
@@ -158,6 +250,11 @@ declarado pelo cliente.
 | `reseller_scope` | `all_workspaces` |
 | `audit_actor_type` | `user`, `ai_agent`, `automation`, `reseller_admin`, `system` |
 | `usage_metric` | `audio_transcription_minutes` |
+| `entity_kind` | `contact`, `company`, `deal`, `object_type` |
+| `field_type` | `text`, `number`, `currency`, `date`, `boolean`, `select`, `multiselect`, `relation`, `email`, `phone`, `ai_generated` |
+| `field_sensitivity` | `none`, `pii`, `financial` |
+| `field_change_type` | `created`, `updated`, `deleted` |
+| `deal_status` | `open`, `won`, `lost` |
 
 ## Helpers de RLS — schema `app`
 
@@ -175,6 +272,13 @@ O schema `app` **nao** e exposto via PostgREST (`config.toml` expoe apenas
 | `app.record_audit(...)` | `uuid` | **Unico** instrumento de escrita na trilha. So `service_role` |
 | `app.prevent_audit_mutation()` | `trigger` | Bloqueia UPDATE e DELETE na trilha |
 | `app.audit_workspaces()` / `app.audit_workspace_members()` / `app.audit_reseller_admins()` | `trigger` | Gravam a trilha das tabelas de fundacao |
+| `app.validate_custom_fields(uuid, entity_kind, uuid, jsonb)` | `void` | Valida `custom_fields` contra `field_definitions` (Etapa 3) |
+| `app.enforce_custom_fields()` | `trigger` | Aplica a validacao nas quatro tabelas de registro |
+| `app.version_field_definition()` | `trigger` | Escreve `field_schema_versions` |
+| `app.audit_registro_crm()` | `trigger` | Auditoria das entidades, gravando as **chaves** de `custom_fields`, nunca os valores |
+| `app.check_relation_target(uuid, entity_kind, uuid)` | `boolean` | Confere existencia de alvo polimorfico no workspace |
+| `app.enforce_relation_targets()` / `app.enforce_pipeline_item()` | `trigger` | Integridade das referencias polimorficas |
+| `app.registrar_movimentacao_pipeline()` / `app.marcar_entrada_estagio()` | `trigger` | Historico de estagio e `entered_stage_at` |
 
 `SECURITY DEFINER` aqui nao e atalho: a politica de `workspace_members`
 precisa consultar `workspace_members`, o que causaria recursao infinita de
@@ -271,6 +375,22 @@ Executado em 11/08/2026 no projeto `banulwjiccwpbkwmwgla` (`sa-east-1`):
 
 O controle negativo existe para provar que o teste e capaz de reprovar: um
 harness que so sabe dizer PASS nao prova nada.
+
+### `supabase/tests/etapa3_crm_test.sql` (Etapa 3)
+
+22 verificacoes: versionamento de campo na criacao e na alteracao; recusa de
+campo obrigatorio ausente, chave desconhecida e valor fora das opcoes;
+auditoria gravando chaves sem copiar valores; estado anterior no update;
+N:N sem duplicar cadastro; relacao entre negocio e objeto customizado e recusa
+de alvo inexistente; historico na entrada do pipeline; calculo de
+`duration_seconds`; reinicio de `entered_stage_at`; mesma entidade em pipelines
+paralelos; recusa de item duplicado e de tipo incompativel; ordenacao por
+`position_in_stage`; historico nao editavel; e escrita cross-tenant bloqueada
+com 42501 em `companies`, `pipeline_stages` e `pipeline_items`.
+
+A verificacao cross-tenant mira `companies`, e nao `contacts`, de proposito:
+em `contacts` o gatilho de campo obrigatorio dispara antes da politica e o
+teste passaria sem nunca exercitar a RLS.
 
 ### `services/worker/test/primitivas.test.js` (Etapa 2)
 

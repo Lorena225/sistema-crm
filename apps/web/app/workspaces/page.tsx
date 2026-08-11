@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -60,7 +61,9 @@ export default async function WorkspacesPage() {
         {workspaces.map((ws) => (
           <li key={ws.id} className="card">
             <span className="card-slug">/{ws.slug}</span>
-            <p className="card-name">{ws.name}</p>
+            <p className="card-name">
+              <Link href={`/w/${ws.slug}`}>{ws.name}</Link>
+            </p>
             <div className="meta">
               <span>plano {ws.plan}</span>
               <span>{ws.status}</span>

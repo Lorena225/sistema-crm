@@ -15,7 +15,8 @@
     "db:push": "supabase db push",
     "db:test": "supabase db execute --file supabase/tests/rls_isolation_test.sql",
     "test:worker": "npm test --workspace @kommopp/worker",
-    "db:test:etapa2": "supabase db execute --file supabase/tests/etapa2_audit_billing_test.sql"
+    "db:test:etapa2": "supabase db execute --file supabase/tests/etapa2_audit_billing_test.sql",
+    "db:test:etapa3": "supabase db execute --file supabase/tests/etapa3_crm_test.sql"
   },
   "engines": {
     "node": ">=20"
