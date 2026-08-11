@@ -1,0 +1,155 @@
+/* ---------------------------------------------------------------
+   Kommo++ — shell operacional (Etapa 1)
+   Sistema visual VirtruvIA: tinta quase preta, creme e ouro discreto.
+   Lora para titulo, Poppins para texto, monoespacada para slug/ID.
+   --------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Poppins:wght@300;400;500;600&display=swap');
+
+:root {
+  --ink: #0b0b0c;
+  --graphite: #1a1b1e;
+  --line: #2a2b30;
+  --cream: #f4f1e8;
+  --muted: #8f8a7e;
+  --gold: #c8a227;
+  --danger: #c8102e;
+
+  --display: 'Lora', Georgia, serif;
+  --body: 'Poppins', system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--body);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--gold); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.shell {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 3.5rem 1.5rem 5rem;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+}
+
+h1 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+}
+
+h2 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 1.15rem;
+  margin: 2.5rem 0 1rem;
+}
+
+p { line-height: 1.65; color: #d9d5c9; margin: 0 0 1rem; }
+.lede { max-width: 46ch; }
+.muted { color: var(--muted); font-size: 0.9rem; }
+
+.rule { height: 1px; background: var(--line); border: 0; margin: 2rem 0; }
+
+/* Cartao de workspace: o slug e a identidade operacional do tenant. */
+.card-list { display: grid; gap: 0.75rem; padding: 0; margin: 0; list-style: none; }
+
+.card {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--gold);
+  background: var(--graphite);
+  padding: 1.1rem 1.25rem;
+}
+
+.card-slug {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+}
+
+.card-name { font-size: 1.05rem; font-weight: 500; margin: 0.35rem 0 0.6rem; }
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.empty {
+  border: 1px dashed var(--line);
+  padding: 2rem 1.5rem;
+  text-align: left;
+}
+
+/* Formulario */
+.field { display: block; margin-bottom: 1rem; max-width: 22rem; }
+.field span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+input {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  background: var(--graphite);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  font-family: var(--body);
+  font-size: 0.95rem;
+}
+input:focus { border-color: var(--gold); outline: none; }
+
+button {
+  font-family: var(--body);
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.7rem 1.4rem;
+  background: var(--gold);
+  color: var(--ink);
+  border: 0;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+button:hover { opacity: 0.86; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.notice { font-size: 0.85rem; color: var(--gold); margin-top: 1rem; }
+.error { font-size: 0.85rem; color: var(--danger); margin-top: 1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

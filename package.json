@@ -1,0 +1,21 @@
+{
+  "name": "kommopp-virtruvia",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Kommo++ VirtruvIA — CRM multi-tenant messenger-first. Monorepo.",
+  "workspaces": [
+    "apps/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @kommopp/web",
+    "build:web": "npm run build --workspace @kommopp/web",
+    "dev:worker": "npm run dev --workspace @kommopp/worker",
+    "db:diff": "supabase db diff -f",
+    "db:push": "supabase db push",
+    "db:test": "supabase db execute --file supabase/tests/rls_isolation_test.sql"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

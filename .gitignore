@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Build
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Ambiente — NUNCA comitar segredos
+.env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+.supabase/
+
+# Vercel
+.vercel
+
+# Sistema / editor
+.DS_Store
+*.log
+npm-debug.log*
+.idea/
+.vscode/*
+!.vscode/extensions.json
