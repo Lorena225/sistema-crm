@@ -1,10 +1,11 @@
 # Schema vigente
 
-Atualizado na **Etapa 1**. Reflete `/supabase/migrations` — se divergir, a
+Atualizado na **Etapa 2**. Reflete `/supabase/migrations` — se divergir, a
 migration esta certa e este documento esta desatualizado.
 
-Escopo desta etapa: apenas a fundacao de multi-tenancy. Nao existem ainda
-tabelas de CRM, canais, automacao, IA, BI, auditoria ou billing.
+Escopo ate aqui: fundacao de multi-tenancy (Etapa 1), auditoria append-only e
+medicao de consumo (Etapa 2). Nao existem ainda tabelas de CRM, canais,
+automacao, IA ou BI.
 
 ## Visao geral
 
@@ -19,6 +20,9 @@ workspace_members ---- workspace_id ----> workspaces
   auth.uid() ativo aqui = condicao de acesso ao tenant
 
 reseller_admins  (fora do modelo de tenant; acesso so server-side)
+
+audit_log_entries    (trilha append-only; workspace_id sem FK, sobrevive ao tenant)
+usage_meter_entries  (medicao de consumo; FK para workspaces)
 ```
 
 ## `public.workspaces`
@@ -79,6 +83,71 @@ deliberadamente **nao** adicionado: o escopo especifica as colunas literais, e
 acrescentar campo fora dele contraria a disciplina de etapa. Se auditoria de
 concessao for necessaria, entra na Etapa 2 junto com `audit_log_entries`.
 
+## `public.audit_log_entries` (Etapa 2)
+
+Trilha de auditoria **append-only**. Esquema generico: recebe acoes de todos
+os modulos futuros sem migration nova.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| `id` | `uuid` PK | `gen_random_uuid()` |
+| `workspace_id` | `uuid` NOT NULL | **sem FK**, de proposito — a trilha precisa sobreviver a exclusao do tenant |
+| `actor_type` | `audit_actor_type` NOT NULL | `user`, `ai_agent`, `automation`, `reseller_admin`, `system` |
+| `actor_id` | `uuid` | nulo quando `actor_type = system` |
+| `action` | `text` NOT NULL | 1 a 120 caracteres (ex.: `workspace.created`) |
+| `resource_type` | `text` NOT NULL | 1 a 80 caracteres (ex.: `workspace_member`) |
+| `resource_id` | `uuid` | |
+| `before_state` | `jsonb` | linha anterior; nulo em criacao |
+| `after_state` | `jsonb` | linha resultante; nulo em exclusao |
+| `ip_address` | `inet` | origem, quando a requisicao vem do PostgREST |
+| `created_at` | `timestamptz` NOT NULL | `now()` |
+
+Indices: `workspace_id`; `(workspace_id, created_at desc)` para a consulta
+dominante; `(workspace_id, resource_type, resource_id)` para o historico de um
+recurso; `(workspace_id, actor_type, actor_id)` para o rastro de um ator.
+
+Sem indice GIN nos jsonb nesta etapa: sao payload de leitura, nao criterio de
+filtro.
+
+**Append-only imposto pelo banco.** Gatilhos `audit_log_entries_no_update` e
+`audit_log_entries_no_delete` levantam excecao para qualquer papel, inclusive
+`service_role` (que tem `BYPASSRLS`) e o dono da tabela. Ver ADR-0008.
+
+RLS: `audit_log_entries_select_member` (SELECT para membro ativo). Nenhuma
+politica de INSERT, UPDATE ou DELETE. Grant: apenas `SELECT` para
+`authenticated`.
+
+### Gatilhos de auditoria
+
+| Tabela | Acoes gravadas |
+|---|---|
+| `workspaces` | `workspace.created`, `workspace.updated`, `workspace.deleted` |
+| `workspace_members` | `workspace_member.created`, `.updated`, `.deleted` |
+| `reseller_admins` | `reseller_admin.granted`, `.updated`, `.revoked` (workspace nulo) |
+
+## `public.usage_meter_entries` (Etapa 2)
+
+Medicao de consumo variavel. Registra **consumo, nao preco de venda** —
+nenhum valor comercial existe no schema ou no codigo. Ver ADR-0011.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| `id` | `uuid` PK | `gen_random_uuid()` |
+| `workspace_id` | `uuid` NOT NULL | FK -> `workspaces(id)`, ON DELETE CASCADE |
+| `metric` | `usage_metric` NOT NULL | hoje: `audio_transcription_minutes` |
+| `quantity` | `numeric(18,6)` NOT NULL | `>= 0` |
+| `provider_cost` | `numeric(18,6)` | custo do fornecedor, na moeda dele; nulo se nao apurado |
+| `provider_currency` | `char(3)` NOT NULL | ISO 4217, default `BRL` |
+| `client_rate` | `numeric(18,6)` | **sempre em BRL** — nao ha coluna de moeda porque nao ha outra possibilidade |
+| `occurred_at` | `timestamptz` NOT NULL | quando o consumo aconteceu, nao quando foi registrado |
+
+Indices: `workspace_id`; `(workspace_id, metric, occurred_at desc)` para
+fechamento de periodo.
+
+RLS: `usage_meter_entries_select_member` (SELECT para membro ativo). Escrita
+sem politica — quem mede e o sistema, via `service_role`. Consumo nao e
+declarado pelo cliente.
+
 ## Enums
 
 | Tipo | Valores |
@@ -87,6 +156,8 @@ concessao for necessaria, entra na Etapa 2 junto com `audit_log_entries`.
 | `workspace_role` | `owner`, `admin`, `manager`, `agent`, `viewer` |
 | `workspace_member_status` | `invited`, `active`, `disabled` |
 | `reseller_scope` | `all_workspaces` |
+| `audit_actor_type` | `user`, `ai_agent`, `automation`, `reseller_admin`, `system` |
+| `usage_metric` | `audio_transcription_minutes` |
 
 ## Helpers de RLS — schema `app`
 
@@ -99,6 +170,11 @@ O schema `app` **nao** e exposto via PostgREST (`config.toml` expoe apenas
 | `app.is_workspace_member(uuid)` | `boolean` | Predicado de leitura das politicas de tenant |
 | `app.has_workspace_role(uuid, workspace_role[])` | `boolean` | Predicado de escrita (owner/admin) |
 | `app.is_reseller_admin()` | `boolean` | Somente `service_role`. Nao usada em nenhuma politica de tenant |
+| `app.current_actor_type()` | `audit_actor_type` | Classifica o ator da transacao (Etapa 2) |
+| `app.current_ip()` | `inet` | IP de origem via `request.headers`; nulo fora do PostgREST |
+| `app.record_audit(...)` | `uuid` | **Unico** instrumento de escrita na trilha. So `service_role` |
+| `app.prevent_audit_mutation()` | `trigger` | Bloqueia UPDATE e DELETE na trilha |
+| `app.audit_workspaces()` / `app.audit_workspace_members()` / `app.audit_reseller_admins()` | `trigger` | Gravam a trilha das tabelas de fundacao |
 
 `SECURITY DEFINER` aqui nao e atalho: a politica de `workspace_members`
 precisa consultar `workspace_members`, o que causaria recursao infinita de
@@ -136,11 +212,11 @@ recebe erro de privilegio, nao lista vazia. Ver ADR-0005.
 
 ## Grants
 
-| Papel | `workspaces` | `workspace_members` | `reseller_admins` |
-|---|---|---|---|
-| `anon` | nenhum | nenhum | nenhum |
-| `authenticated` | SELECT, UPDATE | SELECT, INSERT, UPDATE, DELETE | nenhum |
-| `service_role` | total | total | total |
+| Papel | `workspaces` | `workspace_members` | `reseller_admins` | `audit_log_entries` | `usage_meter_entries` |
+|---|---|---|---|---|---|
+| `anon` | nenhum | nenhum | nenhum | nenhum | nenhum |
+| `authenticated` | SELECT, UPDATE | SELECT, INSERT, UPDATE, DELETE | nenhum | SELECT | SELECT |
+| `service_role` | total | total | total | INSERT e SELECT (UPDATE/DELETE bloqueados por gatilho) | total |
 
 ## Funcoes em `public`
 
@@ -151,10 +227,20 @@ insere quem chamou como `owner` ativo — tudo na mesma transacao. Unico caminho
 de criacao de tenant para usuario autenticado. `EXECUTE` apenas para
 `authenticated`.
 
-## Teste de isolamento
+### `public.log_admin_action(...) -> uuid` (Etapa 2)
 
-`supabase/tests/rls_isolation_test.sql`, executado em 11/08/2026 no projeto
-`banulwjiccwpbkwmwgla` (`sa-east-1`):
+`SECURITY DEFINER`, `EXECUTE` apenas para `service_role`. Ponto de entrada de
+auditoria das rotas administrativas: exige `actor_id` explicito, fixa
+`actor_type = reseller_admin` e delega para `app.record_audit`. Existe em
+`public` porque o schema `app` nao e exposto via PostgREST. Ver ADR-0009.
+
+## Testes reproduziveis
+
+Ambos rodam em transacao encerrada em `ROLLBACK` e nao deixam residuo.
+
+### `supabase/tests/rls_isolation_test.sql` (Etapa 1)
+
+Executado em 11/08/2026 no projeto `banulwjiccwpbkwmwgla` (`sa-east-1`):
 
 | Verificacao | Resultado |
 |---|---|
@@ -166,5 +252,31 @@ de criacao de tenant para usuario autenticado. `EXECUTE` apenas para
 | A tenta SELECT em `reseller_admins` | bloqueado (`insufficient_privilege`) — PASS |
 | Controle negativo do harness | FAIL detectado corretamente |
 
-O ultimo item existe para provar que o teste e capaz de reprovar: um harness
-que so sabe dizer PASS nao prova nada.
+### `supabase/tests/etapa2_audit_billing_test.sql` (Etapa 2)
+
+| Verificacao | Resultado |
+|---|---|
+| Criar workspace gera trilha automatica | 2 entradas (`workspace.created`, `workspace_member.created`) — PASS |
+| Ator e `after_state` gravados | `actor=user`, `slug=e2-ws-a` — PASS |
+| Trilha do workspace B invisivel para A | 0 entradas — PASS |
+| UPDATE na trilha (usuario) | bloqueado (42501) — PASS |
+| DELETE na trilha (usuario) | bloqueado (42501) — PASS |
+| Usuario tenta chamar `app.record_audit` | bloqueado — PASS |
+| A le `usage_meter_entries` | 1 linha (so a propria) — PASS |
+| A tenta inserir consumo | bloqueado — PASS |
+| UPDATE na trilha (papel de servico) | bloqueado pelo gatilho — PASS |
+| DELETE na trilha (papel de servico) | bloqueado pelo gatilho — PASS |
+| Operacao administrativa auditada | 1 entrada `reseller_admin` — PASS |
+| Controle negativo do harness | FAIL detectado corretamente |
+
+O controle negativo existe para provar que o teste e capaz de reprovar: um
+harness que so sabe dizer PASS nao prova nada.
+
+### `services/worker/test/primitivas.test.js` (Etapa 2)
+
+13 testes, runner nativo do Node, sem dependencia externa: retry ate o
+sucesso, falha isolada, crescimento e teto do backoff, deduplicacao por chave,
+liberacao da chave apos falha, webhook simulado sem efeito duplicado, recusa
+de evento sem id, recusa de assinatura invalida, ida e volta da criptografia,
+deteccao de adulteracao, chave invalida recusada, redacao de credenciais em
+log e tolerancia a referencia circular.

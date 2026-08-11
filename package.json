@@ -13,7 +13,9 @@
     "dev:worker": "npm run dev --workspace @kommopp/worker",
     "db:diff": "supabase db diff -f",
     "db:push": "supabase db push",
-    "db:test": "supabase db execute --file supabase/tests/rls_isolation_test.sql"
+    "db:test": "supabase db execute --file supabase/tests/rls_isolation_test.sql",
+    "test:worker": "npm test --workspace @kommopp/worker",
+    "db:test:etapa2": "supabase db execute --file supabase/tests/etapa2_audit_billing_test.sql"
   },
   "engines": {
     "node": ">=20"
