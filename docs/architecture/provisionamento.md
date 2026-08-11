@@ -18,17 +18,37 @@ variaveis.
 Extensoes habilitadas: `pgcrypto`, `vector` (pgvector, provisionado sem uso —
 sera utilizado pela IA nas etapas seguintes). Storage habilitado.
 
-Migrations aplicadas:
+Migrations aplicadas (nove, correspondendo uma a uma aos arquivos do
+repositorio):
 
-1. `20260811190000_etapa1_foundation_multi_tenancy.sql`
-2. `20260811190100_etapa1_create_workspace_rpc.sql`
-3. `20260811200000_etapa2_audit_log.sql`
-4. `20260811200100_etapa2_usage_meter.sql`
-5. `20260811200200_etapa2_admin_audit_rpc.sql`
-6. `20260811200300_etapa2_hardening_search_path.sql`
+1. `20260811193101_etapa1_foundation_multi_tenancy.sql`
+2. `20260811193112_etapa1_create_workspace_rpc.sql`
+3. `20260811194852_etapa2_audit_log.sql`
+4. `20260811194907_etapa2_usage_meter.sql`
+5. `20260811195709_etapa2_admin_audit_rpc.sql`
+6. `20260811195819_etapa2_hardening_search_path.sql`
+7. `20260811211103_etapa3_campos_e_entidades.sql`
+8. `20260811211223_etapa3_pipelines.sql`
+9. `20260811211423_etapa3_fix_audit_estado.sql`
 
-Estado verificado no banco ao fim da Etapa 2: 5 tabelas, 8 politicas, RLS ativa
-em todas, 0 linhas residuais (os testes rodam em transacao com `ROLLBACK`).
+### Nota sobre os carimbos de tempo
+
+As migrations foram aplicadas pelo conector do Supabase, que gera o proprio
+carimbo no momento da aplicacao — diferente do que os arquivos traziam. O
+`supabase db push` compara pela versao no nome do arquivo, entao ele enxergava
+nove migrations pendentes e tentava recriar tipos que ja existiam; o job de
+deploy falhou por isso na primeira execucao.
+
+Os arquivos foram renomeados para as versoes efetivamente registradas em
+`supabase_migrations.schema_migrations`. Repositorio e banco voltaram a
+descrever o mesmo historico, que e a premissa do ADR-0006.
+
+Licao para as proximas etapas: aplicar a migration e nomear o arquivo com a
+mesma versao, ou aplicar pelo `supabase db push` desde o inicio.
+
+Estado verificado no banco ao fim da Etapa 3: 18 tabelas, 18 com RLS ativa,
+21 politicas, 74 indices, 42 gatilhos, 0 linhas residuais (os testes rodam em
+transacao com `ROLLBACK`).
 
 ### Projeto anterior a remover
 
@@ -87,14 +107,14 @@ GET /nope   -> 404 {"error":"not_found"}
 
 ## GitHub Actions — segredos a cadastrar
 
-Em Settings > Secrets and variables > Actions:
+Cadastrados em Settings > Secrets and variables > Actions (11/08/2026):
 
 - `SUPABASE_ACCESS_TOKEN` — token pessoal do Supabase
 - `SUPABASE_DB_PASSWORD` — senha do banco do projeto
 - `SUPABASE_PROJECT_REF` — `banulwjiccwpbkwmwgla`
 
-Enquanto esses segredos nao existirem, o job `deploy` do workflow falha; o job
-`validate` (que roda num Postgres limpo) funciona sem segredo nenhum.
+O job `validate` roda num Postgres limpo e nao depende de segredo nenhum; o
+job `deploy` usa os tres.
 
 ## Avisos do linter do Supabase — aceitos e explicados
 
