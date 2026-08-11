@@ -37,7 +37,7 @@ segura.
 | # | Criterio | Situacao |
 |---|---|---|
 | 1 | Estrutura `/docs`, `/supabase/migrations`, `/apps/web`, `/services/worker` com documentacao inicial e ADRs | Atendido |
-| 2 | Supabase Postgres, pgvector, Storage provisionados | Atendido |
+| 2 | Supabase Postgres, pgvector, Storage provisionados | Atendido — `sa-east-1` |
 | 3 | Vercel e servico Railway/Render provisionados; worker responde health check | Worker verificado local; deploys dependem do push e de acao na conta |
 | 4 | Migrations criam as tres tabelas com as colunas literais, RLS e indices | Atendido |
 | 5 | Usuario autenticado pode pertencer a um workspace via `workspace_members` | Atendido |

@@ -154,7 +154,7 @@ de criacao de tenant para usuario autenticado. `EXECUTE` apenas para
 ## Teste de isolamento
 
 `supabase/tests/rls_isolation_test.sql`, executado em 11/08/2026 no projeto
-`atuftxdqptdfbyzwkufd`:
+`banulwjiccwpbkwmwgla` (`sa-east-1`):
 
 | Verificacao | Resultado |
 |---|---|

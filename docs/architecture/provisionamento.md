@@ -8,10 +8,10 @@ variaveis.
 
 | Item | Valor |
 |---|---|
-| Projeto | `sistema-crm` |
-| Ref | `atuftxdqptdfbyzwkufd` |
+| Projeto | `kommopp-sistema-crm` |
+| Ref | `banulwjiccwpbkwmwgla` |
 | Organizacao | plano Pro |
-| Regiao | `ca-central-1` — ver pendencia abaixo |
+| Regiao | `sa-east-1` (Sao Paulo) |
 | Postgres | 17 |
 | Status | ativo, migrations da Etapa 1 aplicadas |
 
@@ -23,18 +23,22 @@ Migrations aplicadas:
 1. `20260811190000_etapa1_foundation_multi_tenancy.sql`
 2. `20260811190100_etapa1_create_workspace_rpc.sql`
 
-### Pendencia consciente: regiao
+Estado verificado no banco: 3 tabelas, 6 politicas, 11 indices, RLS ativa nas
+tres tabelas, 0 linhas residuais (o teste de isolamento roda em transacao com
+`ROLLBACK`).
 
-O projeto esta em `ca-central-1` (Canada). Para uma operacao brasileira,
-`sa-east-1` (Sao Paulo) e a escolha correta: a latencia de ida e volta cai de
-~130 ms para ~20 ms, e isso aparece em cada interacao de um inbox de conversas.
+### Projeto anterior a remover
 
-A regiao nao muda depois da criacao. A troca exige criar outro projeto e rodar
-`supabase db push` — hoje isso custa poucos minutos, porque o banco esta vazio
-e todo o schema esta versionado. Depois que houver dado de cliente, o custo
-passa a ser uma migracao com janela de indisponibilidade.
+O primeiro provisionamento da Etapa 1 caiu em `ca-central-1` (Canada), ref
+`atuftxdqptdfbyzwkufd`, nome `sistema-crm`. As mesmas migrations foram
+reaplicadas em `sa-east-1` porque a diferenca de latencia para uma operacao
+brasileira e da ordem de 130 ms para 20 ms por ida e volta — e regiao nao muda
+depois da criacao.
 
-**Recomendacao: decidir isso antes da Etapa 3.** Depois disso a conta muda.
+**Pendencia:** apagar o projeto `sistema-crm` (`atuftxdqptdfbyzwkufd`) pelo
+painel do Supabase. Enquanto os dois existirem, a organizacao Pro cobra os dois
+(US$ 10/mes cada). O projeto antigo nunca recebeu dado real — so o teste de
+isolamento, que nao persiste nada.
 
 ## Vercel — pendente
 
@@ -82,7 +86,7 @@ Em Settings > Secrets and variables > Actions:
 
 - `SUPABASE_ACCESS_TOKEN` — token pessoal do Supabase
 - `SUPABASE_DB_PASSWORD` — senha do banco do projeto
-- `SUPABASE_PROJECT_REF` — `atuftxdqptdfbyzwkufd`
+- `SUPABASE_PROJECT_REF` — `banulwjiccwpbkwmwgla`
 
 Enquanto esses segredos nao existirem, o job `deploy` do workflow falha; o job
 `validate` (que roda num Postgres limpo) funciona sem segredo nenhum.
