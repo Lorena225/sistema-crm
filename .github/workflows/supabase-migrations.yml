@@ -1,0 +1,46 @@
+name: Supabase migrations
+
+# Integracao GitHub <-> Supabase por migrations versionadas.
+# - PR: valida que as migrations aplicam em um Postgres limpo.
+# - main: aplica no projeto vinculado.
+# Nenhum segredo no repositorio: tudo vem de GitHub Secrets.
+
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/**']
+  pull_request:
+    paths: ['supabase/**']
+
+jobs:
+  validate:
+    name: Valida migrations em banco limpo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Sobe Supabase local e aplica migrations
+        run: supabase db start
+      - name: Verifica se o schema esta em dia com as migrations
+        run: supabase db diff --schema public,app
+
+  deploy:
+    name: Aplica migrations no projeto
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Vincula projeto
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Aplica migrations
+        run: supabase db push
