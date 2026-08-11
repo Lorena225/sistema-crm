@@ -17,6 +17,9 @@ cria-se um novo ADR que a substitui e marca-se o anterior como substituido.
 | [0010](ADR-0010-primitivas-em-memoria-com-adaptador.md) | Fila e idempotencia em memoria, com adaptador para troca | Aceito | 2 |
 | [0011](ADR-0011-billing-parametrizavel.md) | Medicao de consumo sem catalogo comercial | Aceito | 2 |
 | [0012](ADR-0012-pwa-offline.md) | Fila offline local sem relaxar o isolamento | Aceito | 2 |
+| [0013](ADR-0013-tabelas-filhas-sem-workspace-id.md) | Tabelas filhas sem `workspace_id`, isoladas pelo pai | Aceito | 3 |
+| [0014](ADR-0014-validacao-de-campos-no-banco.md) | Validacao de `custom_fields` no banco, nao na interface | Aceito | 3 |
+| [0015](ADR-0015-pipelines-paralelos-e-historico.md) | Pipelines paralelos e historico gravado pelo banco | Aceito | 3 |
 
 Ver tambem: [provisionamento.md](provisionamento.md) — estado real da
 infraestrutura provisionada e passos manuais pendentes.
