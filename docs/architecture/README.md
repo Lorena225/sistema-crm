@@ -26,5 +26,7 @@ cria-se um novo ADR que a substitui e marca-se o anterior como substituido.
 | [0018](ADR-0018-canais-normalizados-e-fila-de-saida.md) | Um modelo normalizado para sete canais, com falha isolada | Aceito | 5 |
 | [0019](ADR-0019-twilio-subcontas-e-credenciais.md) | Subconta Twilio por conta de canal, credencial sempre cifrada | Aceito | 5 |
 
+| [0020](ADR-0020-transporte-real-e-onboarding.md) | Transporte real da Twilio e onboarding de canal | Aceito | 5 (cont.) |
+
 Ver tambem: [provisionamento.md](provisionamento.md) — estado real da
 infraestrutura provisionada e passos manuais pendentes.
