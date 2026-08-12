@@ -36,6 +36,10 @@ export default async function WorkspaceLayout({
     { href: `${base}/registros/deal`, rotulo: 'Negócios' },
     { href: `${base}/registros/object_type`, rotulo: 'Objetos' },
     { href: `${base}/pipelines`, rotulo: 'Pipelines' },
+    { href: `${base}/tarefas`, rotulo: 'Tarefas' },
+    { href: `${base}/agendamento`, rotulo: 'Agendamento' },
+    { href: `${base}/campanhas`, rotulo: 'Campanhas' },
+    { href: `${base}/produtos`, rotulo: 'Produtos' },
     { href: `${base}/campos`, rotulo: 'Campos' },
   ];
 

@@ -30,6 +30,10 @@ repositorio):
 7. `20260811211103_etapa3_campos_e_entidades.sql`
 8. `20260811211223_etapa3_pipelines.sql`
 9. `20260811211423_etapa3_fix_audit_estado.sql`
+10. `20260811224427_etapa4_campanhas_e_identidade.sql`
+11. `20260811224547_etapa4_produtividade_e_agendamento.sql`
+12. `20260811224622_etapa4_produtos_e_itens_de_negocio.sql`
+13. `20260811224822_etapa4_fix_deteccao_duplicidade.sql`
 
 ### Nota sobre os carimbos de tempo
 
@@ -46,9 +50,11 @@ descrever o mesmo historico, que e a premissa do ADR-0006.
 Licao para as proximas etapas: aplicar a migration e nomear o arquivo com a
 mesma versao, ou aplicar pelo `supabase db push` desde o inicio.
 
-Estado verificado no banco ao fim da Etapa 3: 18 tabelas, 18 com RLS ativa,
-21 politicas, 74 indices, 42 gatilhos, 0 linhas residuais (os testes rodam em
-transacao com `ROLLBACK`).
+Estado verificado no banco ao fim da Etapa 4: 38 tabelas, todas com RLS ativa,
+0 linhas residuais (os testes rodam em transacao com `ROLLBACK`).
+
+Os arquivos desta etapa ja nasceram com a versao que o Supabase registrou,
+seguindo a licao da Etapa 3.
 
 ### Projeto anterior a remover
 

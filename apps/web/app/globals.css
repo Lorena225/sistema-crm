@@ -352,3 +352,24 @@ button.link.perigo { color: var(--danger); }
   color: #d9d5c9;
 }
 .historico li { padding: 0.15rem 0; }
+
+/* Etapa 4 — produtividade e comercial */
+.cartao-negocio .coluna-topo { margin-bottom: 1rem; }
+.valor-negocio {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  color: var(--gold);
+  white-space: nowrap;
+}
+input.celula {
+  width: 4.5rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.85rem;
+}
+.grade-horarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.5rem;
+}
+.grade-horarios button { text-align: left; font-size: 0.82rem; padding: 0.6rem 0.8rem; }
+textarea { resize: vertical; }

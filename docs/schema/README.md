@@ -1,11 +1,12 @@
 # Schema vigente
 
-Atualizado na **Etapa 3**. Reflete `/supabase/migrations` — se divergir, a
+Atualizado na **Etapa 4**. Reflete `/supabase/migrations` — se divergir, a
 migration esta certa e este documento esta desatualizado.
 
 Escopo ate aqui: fundacao de multi-tenancy (Etapa 1), auditoria append-only e
-medicao de consumo (Etapa 2), nucleo CRM configuravel e pipelines (Etapa 3).
-Nao existem ainda tabelas de tarefas, produtos, canais, automacao, IA ou BI.
+medicao de consumo (Etapa 2), nucleo CRM configuravel e pipelines (Etapa 3),
+produtividade, agendamento, campanhas, identidade e catalogo comercial
+(Etapa 4). Nao existem ainda tabelas de canais, automacao, IA, casos ou BI.
 
 ## Visao geral
 
@@ -240,6 +241,76 @@ pertence ao pipeline), marca `entered_stage_at` na mudanca, e registra o
 historico. `pipeline_stage_history` e somente leitura para `authenticated` —
 ver ADR-0015.
 
+## Produtividade e agendamento (Etapa 4)
+
+| Tabela | Colunas |
+|---|---|
+| `task_types` | `id`, `workspace_id`, `code`, `name`, `default_description`, `category`, `default_duration_minutes`, `default_priority`, `color`, `requires_outcome`, `is_active` |
+| `task_outcome_types` | `id`, `workspace_id`, `task_type_id`, `code`, `label`, `is_positive` |
+| `task_checklist_templates` | `id`, `task_type_id`, `label` |
+| `task_checklist_template_items` | `id`, `task_checklist_template_id`, `label`, `"order"` |
+| `tasks` | `id`, `workspace_id`, `task_type_id`, `title`, `description`, `related_to_type`, `related_to_id`, `assigned_to`, `created_by`, `due_at`, `reminder_at`, `priority`, `status`, `completed_at`, `outcome_type_id`, `outcome_notes`, `source` |
+| `task_comments` | `id`, `task_id`, `author_id`, `body`, `created_at` |
+| `task_recurrences` | `id`, `task_type_id`, `recurrence_rule`, `related_to_type`, `related_to_id`, `assigned_to`, `next_generation_at` |
+| `calendar_integrations` | `id`, `user_id`, `provider`, `external_calendar_id`, `sync_direction` |
+| `calendar_event_links` | `id`, `task_id`, `calendar_integration_id`, `external_event_id` |
+| `booking_pages` | `id`, `workspace_id`, `user_id`, `team_id`, `slug`, `title`, `default_duration_minutes`, `buffer_between_meetings`, `task_type_id` |
+| `booking_slots` | `id`, `booking_page_id`, `day_of_week`, `date`, `start_time`, `end_time`, `is_available` |
+
+**`task_types` e catalogo global do workspace** — sem FK de pipeline ou
+departamento, por escopo: amarrar "ligação" a um funil impediria o tipo de
+existir no resto da operacao.
+
+**Atraso nao e coluna.** E `due_at < now()` com `status = 'pendente'`,
+calculado na consulta. Persistir exigiria um job varrendo a tabela e produziria
+estado errado entre duas varreduras. Indice parcial
+`tasks_vencimento_idx (workspace_id, due_at) where status = 'pendente'`.
+
+**`calendar_integrations` pertence ao usuario, nao ao workspace** — a agenda
+pessoal atravessa os workspaces de que a pessoa participa. A politica usa
+`user_id = auth.uid()` diretamente, sem passar por `workspace_members`.
+
+**`booking_slots`** aceita `day_of_week` **ou** `date`, nunca os dois: um
+`check` garante isso, porque os dois juntos seriam ambiguos e nenhum dos dois
+nao definiria quando o slot existe.
+
+**`booking_pages.slug` e unico globalmente**, e nao por workspace: a URL
+publica `/agendar/<slug>` nao carrega o tenant.
+
+## Campanhas e identidade (Etapa 4)
+
+| Tabela | Colunas |
+|---|---|
+| `campaigns` | `id`, `workspace_id`, `name`, `channel`, `type`, `budget` (BRL), `start_date`, `end_date`, `utm_source`, `utm_medium`, `utm_campaign`, `status` |
+| `campaign_members` | `id`, `campaign_id`, `contact_id`, `deal_id`, `status`, `added_at` |
+| `campaign_influence` | `id`, `deal_id`, `campaign_id`, `influence_type`, `weight` |
+| `identity_resolution_rules` | `id`, `workspace_id`, `match_fields` (jsonb + GIN), `match_type`, `auto_merge_threshold` |
+| `identity_merge_queue` | `id`, `workspace_id`, `candidate_contact_id`, `existing_contact_id`, `confidence_score`, `status`, `reviewed_by` |
+
+`public.detect_duplicate_contacts(workspace_id, contact_id)` compara documento
+(0.98), e-mail (0.90) e telefone normalizado (0.75) e **enfileira candidatos**,
+sem fundir nada. A hierarquia dos pesos reflete quanto cada campo identifica:
+telefone e reaproveitado, e-mail e compartilhado, documento nao.
+
+## Catalogo comercial (Etapa 4)
+
+| Tabela | Colunas |
+|---|---|
+| `products` | `id`, `workspace_id`, `name`, `sku`, `default_price`, `currency` (default `BRL`), `is_active` |
+| `price_books` | `id`, `workspace_id`, `name`, `currency` (default `BRL`), `is_default` |
+| `price_book_entries` | `id`, `price_book_id`, `product_id`, `unit_price` |
+| `deal_line_items` | `id`, `deal_id`, `product_id`, `price_book_id`, `quantity`, `unit_price`, `discount_percent`, `line_total` |
+
+`line_total` e **coluna gerada**:
+`round(quantity * unit_price * (1 - discount_percent), 2)`.
+`discount_percent` guarda **fracao** (0.1 = dez por cento), seguindo a formula
+literal do escopo; a interface converte da porcentagem digitada.
+
+Tres gatilhos sustentam a regra (ADR-0017): preenchimento de preco (entrada do
+price book antes do preco padrao), recalculo de `deals.value` a cada mudanca de
+item, e sobreposicao do valor manual enquanto houver itens. Sem itens,
+`deals.value` volta a ser editavel e **nao** e zerado.
+
 ## Enums
 
 | Tipo | Valores |
@@ -255,6 +326,17 @@ ver ADR-0015.
 | `field_sensitivity` | `none`, `pii`, `financial` |
 | `field_change_type` | `created`, `updated`, `deleted` |
 | `deal_status` | `open`, `won`, `lost` |
+| `task_category` | `ligação`, `reunião`, `visita`, `e-mail`, `follow_up`, `administrativa`, `entrega`, `outro` |
+| `task_priority` | `baixa`, `média`, `alta`, `urgente` |
+| `task_status` | `pendente`, `em_andamento`, `concluída`, `cancelada` |
+| `task_source` | `manual`, `automação`, `agente_ia`, `gatilho_de_etapa`, `agendamento_publico` |
+| `related_to_type` | `contact`, `company`, `deal`, `case`, `campaign` |
+| `sync_direction` | `bidirectional`, `push_only` |
+| `campaign_type` | `pago`, `organico`, `offline` |
+| `campaign_member_status` | `alvo`, `respondeu`, `convertido` |
+| `influence_type` | `primeiro_toque`, `ultimo_toque`, `multi_toque` |
+| `identity_match_type` | `exact`, `fuzzy` |
+| `merge_status` | `pending_review`, `auto_merged`, `rejected` |
 
 ## Helpers de RLS — schema `app`
 
@@ -391,6 +473,18 @@ com 42501 em `companies`, `pipeline_stages` e `pipeline_items`.
 A verificacao cross-tenant mira `companies`, e nao `contacts`, de proposito:
 em `contacts` o gatilho de campo obrigatorio dispara antes da politica e o
 teste passaria sem nunca exercitar a RLS.
+
+### `supabase/tests/etapa4_produtividade_comercial_test.sql` (Etapa 4)
+
+18 verificacoes: produto nasce em BRL; entrada do price book vence o preco
+padrao; sem entrada usa `products.default_price`; `deals.value` recalculado na
+criacao, na alteracao com desconto e na remocao; valor manual sobreposto com
+itens e respeitado sem itens; reserva publica por visitante anonimo; buffer
+recusando horario colado; horario fora da janela recusado; horario livre apos o
+buffer aceito; anonimo bloqueado nas tabelas; pagina publica legivel pela
+funcao; reserva criando tarefa, contato e negocio; atraso calculado; campanha
+com membro e influencia; duplicata por e-mail na fila revisavel; e isolamento
+cross-tenant em tarefas, campanhas, fila de merge e escrita de catalogo (42501).
 
 ### `services/worker/test/primitivas.test.js` (Etapa 2)
 

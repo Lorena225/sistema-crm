@@ -20,6 +20,8 @@ cria-se um novo ADR que a substitui e marca-se o anterior como substituido.
 | [0013](ADR-0013-tabelas-filhas-sem-workspace-id.md) | Tabelas filhas sem `workspace_id`, isoladas pelo pai | Aceito | 3 |
 | [0014](ADR-0014-validacao-de-campos-no-banco.md) | Validacao de `custom_fields` no banco, nao na interface | Aceito | 3 |
 | [0015](ADR-0015-pipelines-paralelos-e-historico.md) | Pipelines paralelos e historico gravado pelo banco | Aceito | 3 |
+| [0016](ADR-0016-agendamento-publico-sem-abrir-o-tenant.md) | Agendamento publico sem abrir o tenant | Aceito | 4 |
+| [0017](ADR-0017-valor-do-negocio-derivado-dos-itens.md) | `deals.value` derivado dos itens, com edicao manual preservada | Aceito | 4 |
 
 Ver tambem: [provisionamento.md](provisionamento.md) — estado real da
 infraestrutura provisionada e passos manuais pendentes.
