@@ -44,7 +44,7 @@
 | 5 | Cockpit de três colunas com ações de CRM sem sair do chat | Atendido |
 | 6 | Resposta humana desativa o bot; conversa associa negócio sem duplicar contato | Atendido |
 | 7 | Áudio transcrito, consumo medido, resumo conforme a flag | Parcial — medição e resumo prontos; transcritor real não integrado |
-| 8 | Testes de RLS, falha de entrega, limite, bot e associação CRM | Atendido |
+| 8 | Testes de RLS, falha de entrega, limite, bot e associação CRM | Atendido — `supabase/tests/etapa5_inbox_test.sql` + 36 testes no worker |
 
 ## Limitações conhecidas
 
