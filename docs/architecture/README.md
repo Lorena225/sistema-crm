@@ -23,5 +23,8 @@ cria-se um novo ADR que a substitui e marca-se o anterior como substituido.
 | [0016](ADR-0016-agendamento-publico-sem-abrir-o-tenant.md) | Agendamento publico sem abrir o tenant | Aceito | 4 |
 | [0017](ADR-0017-valor-do-negocio-derivado-dos-itens.md) | `deals.value` derivado dos itens, com edicao manual preservada | Aceito | 4 |
 
+| [0018](ADR-0018-canais-normalizados-e-fila-de-saida.md) | Um modelo normalizado para sete canais, com falha isolada | Aceito | 5 |
+| [0019](ADR-0019-twilio-subcontas-e-credenciais.md) | Subconta Twilio por conta de canal, credencial sempre cifrada | Aceito | 5 |
+
 Ver tambem: [provisionamento.md](provisionamento.md) — estado real da
 infraestrutura provisionada e passos manuais pendentes.
