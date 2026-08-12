@@ -4,7 +4,7 @@ CRM multi-tenant, messenger-first, da VirtruvIA. Monorepo unico: este
 repositorio e a **fonte de verdade** de schema, decisoes e codigo entre as
 frentes de construcao. Historico de chat nao vale como referencia.
 
-**Etapa atual: 4 — Nucleo CRM: produtividade e comercial.**
+**Etapa atual: 5 — Inbox omnichannel e cockpit.**
 
 ## Estrutura
 

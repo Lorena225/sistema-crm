@@ -31,6 +31,7 @@ export default async function WorkspaceLayout({
   const base = `/w/${workspace.slug}`;
   const abas = [
     { href: base, rotulo: 'Visão geral' },
+    { href: `${base}/inbox`, rotulo: 'Inbox' },
     { href: `${base}/registros/contact`, rotulo: 'Contatos' },
     { href: `${base}/registros/company`, rotulo: 'Empresas' },
     { href: `${base}/registros/deal`, rotulo: 'Negócios' },

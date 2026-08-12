@@ -1,6 +1,6 @@
 # Schema vigente
 
-Atualizado na **Etapa 4**. Reflete `/supabase/migrations` — se divergir, a
+Atualizado na **Etapa 5**. Reflete `/supabase/migrations` — se divergir, a
 migration esta certa e este documento esta desatualizado.
 
 Escopo ate aqui: fundacao de multi-tenancy (Etapa 1), auditoria append-only e
@@ -310,6 +310,49 @@ Tres gatilhos sustentam a regra (ADR-0017): preenchimento de preco (entrada do
 price book antes do preco padrao), recalculo de `deals.value` a cada mudanca de
 item, e sobreposicao do valor manual enquanto houver itens. Sem itens,
 `deals.value` volta a ser editavel e **nao** e zerado.
+
+## Inbox omnichannel (Etapa 5)
+
+| Tabela | Colunas |
+|---|---|
+| `channel_accounts` | `id`, `workspace_id`, `channel_type`, `external_account_id`, `display_name`, `credentials`, `status`, `created_at` |
+| `agent_numbers` | `id`, `channel_account_id`, `agent_id`, `phone_number` |
+| `conversations` | `id`, `workspace_id`, `channel_account_id`, `contact_id`, `company_id`, `deal_id`, `status`, `assigned_to`, `is_bot_active`, `last_message_at`, `sla_due_at`, `created_at` |
+| `messages` | `id`, `conversation_id`, `direction`, `sender_type`, `content`, `media_url`, `media_type`, `duration_seconds`, `transcript`, `external_message_id`, `delivery_status`, `error_reason`, `created_at` |
+| `message_templates` | `id`, `workspace_id`, `channel_account_id`, `name`, `body`, `approval_status`, `category` |
+| `channel_quality_events` | `id`, `channel_account_id`, `event_type`, `detail`, `created_at` |
+| `voice_calls` | `id`, `conversation_id`, `direction`, `from_number`, `to_number`, `agent_id`, `recording_url`, `duration_seconds`, `transcript`, `ivr_path`, `created_at` |
+| `sla_policies` | `id`, `workspace_id`, `channel_type`, `first_response_minutes`, `resolution_minutes` |
+| `notes` | `id`, `workspace_id`, `related_to_type`, `related_to_id`, `author_id`, `body`, `is_pinned`, `created_at` |
+| `conversation_summaries` | `id`, `conversation_id`, `summary_text`, `key_points`, `generated_at`, `generated_by` |
+| `message_reactions` | `id`, `message_id`, `reactor_type`, `reactor_id`, `emoji`, `created_at` |
+
+### Protecoes de `channel_accounts.credentials`
+
+Tres barreiras (ADR-0019): cifragem AES-256-GCM antes de gravar; restricao
+`channel_accounts_credenciais_cifradas` exigindo o prefixo `v1:` — o Postgres
+recusa credencial crua mesmo digitada no painel; e `GRANT` **por coluna**, de
+modo que `authenticated` nao recebe `SELECT` em `credentials`.
+
+### Indices que carregam decisao
+
+- `messages_externo_uniq` — unico parcial em `external_message_id`: reentrega
+  do provedor nao vira mensagem duplicada.
+- `messages_transcricao_pendente_idx` — parcial em audios sem transcricao, que
+  e a fila que o transcritor assincrono consome.
+- `conversations_sla_idx` — parcial nas nao resolvidas, para o painel de SLA.
+
+### Gatilhos
+
+| Gatilho | O que faz |
+|---|---|
+| `messages_processa` | Atualiza `last_message_at`; **desliga `is_bot_active` quando a mensagem e `outbound` de `agent`**; reabre conversa resolvida ao receber mensagem do contato; define `sla_due_at` pela politica do canal |
+| `messages_medicao` | Ao chegar `transcript`, grava `usage_meter_entries` com `duration_seconds / 60` — o custo e da transcricao, nao do audio |
+| `conversations_resumo` | Ao resolver, le `workspaces.auto_summary_on_resolve` e cria `conversation_summaries` com `generated_by = auto_on_resolve` |
+
+O resumo automatico nasce com marcador explicito (`Resumo automatico pendente
+de geracao`). Quem escreve o texto e a runtime de IA da Etapa 8 — inventar um
+resumo agora seria pior do que nao ter.
 
 ## Enums
 
