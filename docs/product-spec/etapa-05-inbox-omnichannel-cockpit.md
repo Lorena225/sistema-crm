@@ -38,9 +38,9 @@
 | # | Critério | Situação |
 |---|---|---|
 | 1 | Tabelas com nomes/colunas literais, RLS e credenciais cifradas | Atendido |
-| 2 | `channel_account` whatsapp gera subconta Twilio com credenciais cifradas | Atendido no worker; **não acionado por interface** |
+| 2 | `channel_account` whatsapp gera subconta Twilio com credenciais cifradas | **Fechado na continuação** — acionado pela tela de canais |
 | 3 | Webhooks normalizam e fila registra queued/sent/delivered/read/failed; falha isolada | Atendido |
-| 4 | WhatsApp por Twilio com múltiplas contas/agentes e diagnóstico | Parcial — schema e primitivas prontos, onboarding guiado não entregue |
+| 4 | WhatsApp por Twilio com múltiplas contas/agentes e diagnóstico | **Fechado na continuação** — onboarding guiado, subconta automática e painel de diagnóstico entregues (ADR-0020) |
 | 5 | Cockpit de três colunas com ações de CRM sem sair do chat | Atendido |
 | 6 | Resposta humana desativa o bot; conversa associa negócio sem duplicar contato | Atendido |
 | 7 | Áudio transcrito, consumo medido, resumo conforme a flag | Parcial — medição e resumo prontos; transcritor real não integrado |
@@ -48,11 +48,16 @@
 
 ## Limitações conhecidas
 
-1. **Transporte real de canal não existe.** `transportes` é um mapa injetado
-   e só os testes o preenchem. Nenhuma mensagem sai de verdade ainda.
-2. **Onboarding guiado e diagnóstico de qualidade não entregues.** As tabelas
-   `channel_quality_events` e `message_templates` existem e estão isoladas,
-   mas não há tela.
+1. ~~Transporte real de canal não existe.~~ **Fechado na continuação:**
+   transporte Twilio real para WhatsApp e SMS, com erros traduzidos e
+   classificados em transitório e definitivo.
+2. ~~Onboarding guiado e diagnóstico de qualidade não entregues.~~
+   **Fechado na continuação:** tela `/w/[slug]/canais` conecta o canal, cria a
+   subconta Twilio e exibe eventos de qualidade, status e aprovação de
+   templates.
+2b. **Validação ponta a ponta no Sandbox ainda não executada:** depende das
+   credenciais Twilio no ambiente e do deploy do worker. O código está pronto e
+   coberto por 11 testes com `fetch` injetado.
 3. **Transcrição assíncrona não integrada.** A fila (índice parcial) e a
    medição estão prontas; falta o provedor de transcrição.
 4. **WebSocket próprio não implementado.** O tempo real do cockpit usa

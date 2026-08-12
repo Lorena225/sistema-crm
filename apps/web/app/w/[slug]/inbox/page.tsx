@@ -159,15 +159,31 @@ export default function CockpitPage({ params }: { params: { slug: string } }) {
 
     // sender_type = agent: o gatilho do banco desliga is_bot_active. A tela
     // nao precisa saber disso — e justamente esse o ponto.
-    const { error } = await supabase.from('messages').insert({
+    const { data: gravada, error } = await supabase.from('messages').insert({
       conversation_id: ativa,
       direction: 'outbound',
       sender_type: 'agent',
       content: texto.trim(),
       delivery_status: 'queued',
-    });
+    }).select('id').single();
 
     if (error) { setErro(error.message); return; }
+
+    // A mensagem ja esta gravada como `queued`. O envio real fica com o
+    // worker, que aplica janela de 24h, teto por conta, retry e backoff — e
+    // grava o status de volta. Se o worker estiver fora do ar, a mensagem
+    // permanece na fila em vez de se perder.
+    void fetch('/api/inbox/enviar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mensagemId: gravada.id,
+        conversaId: ativa,
+        canal: conversaAtiva?.channel_accounts?.channel_type,
+        channelAccountId: conversaAtiva?.channel_account_id,
+        destino: conversaAtiva?.contacts?.phone,
+      }),
+    }).catch(() => setAviso('Mensagem gravada; o envio será retomado quando o serviço voltar.'));
     setTexto('');
     await carregarThread(ativa);
     await carregarConversas();
